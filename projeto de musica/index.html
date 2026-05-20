@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LyricMind AI</title>
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="container">
+
+    <h1>LyricMind AI 🎵</h1>
+
+    <input type="text" id="tema" placeholder="Tema da música">
+
+    <input type="text" id="genero" placeholder="Gênero musical">
+
+    <input type="text" id="humor" placeholder="Humor da música">
+
+    <button onclick="gerarMusica()">
+      Gerar Música
+      <div class="botoes-extras">
+
+  <button onclick="novoRefrao()">
+    Novo Refrão
+  </button>
+
+  <button onclick="maisTriste()">
+    Mais Triste
+  </button>
+
+  <button onclick="maisPoetico()">
+    Mais Poético
+  </button>
+
+</div>
+    </button>
+
+    <div id="resultado"></div>
+
+  </div>
+
+  <script type="module" src="script.js"></script>
+
+</body>
+</html>
