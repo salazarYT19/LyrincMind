@@ -1,15 +1,14 @@
-local World = require("world")
+local Health = require("systems.health")
+local Stamina = require("systems.stamina")
+local Movement = require("systems.movement_keyboard")
+local Death = require("systems.death")
+
 
 local Player = {}
 
 -- Posição
 Player.x = 400
 Player.y = 300
-
--- Velocidades
-Player.walkSpeed = 200
-Player.runSpeed = 350
-Player.crouchSpeed = 100
 
 -- Tamanho
 Player.size = 32
@@ -21,210 +20,96 @@ Player.direction = "down"
 Player.isRunning = false
 Player.isCrouching = false
 
+-- Vida
+Player.healthSystem = Health.new(100)
+
+Player.maxHealth = Player.healthSystem.maxHealth
+Player.health = Player.healthSystem.health
+
 -- Stamina
-Player.maxStamina = 100
-Player.stamina = 100
+Player.maxStamina = Stamina.maxStamina
+Player.stamina = Stamina.stamina
 
-Player.staminaDrain = 25
-Player.staminaRecovery = 15
+-- Dano para jogador
 
--- vida
-Player.maxHealth = 100
-Player.health = 100
-
-function Player.takeDamage(amount)
-    Player.health = Player.health - amount
-    
-    Player.health = math.max(0, Player.health)
-
-end
-
-function Player.heal(amount)
-
-    Player.health = Player.health + amount
-
-    Player.health = math.min(Player.maxHealth, Player.health)
-
-end
-
-function Player.move(dx, dy, dt)
-
-    local length = math.sqrt(dx * dx + dy * dy)
-
-    -- Normaliza o movimento
-    if length > 0 then
-        dx = dx / length
-        dy = dy / length
-
-        dx = dx * Player.speed * dt
-        dy = dy * Player.speed * dt
-    end
-
-    Player.x = Player.x + dx
-    Player.y = Player.y + dy
-
-
-    -- Limites horizontais
-    Player.x = math.max(0, Player.x)
-    Player.x = math.min(World.width - Player.size, Player.x)
-
-    -- Limites verticais
-    Player.y = math.max(0, Player.y)
-    Player.y = math.min(World.height - Player.size, Player.y)
-
-end
+Player.attackDamage = 25
+Player.attackRange = 60
+Player.attackCooldown = 0.1
+Player.attackDelay = 0.5
 
 
 function Player.load()
+
 end
 
 
-function Player.update(dt)
+function Player.update(dt, enemy)
 
-    local dx = 0
-    local dy = 0
+    Player.attackCooldown = math.max(0, Player.attackCooldown - dt)
 
-    --Jorgador morto
-    if Player.health <= 0 then
+    -- Jogador morto
+    if Player.healthSystem.isDead() then
+        Death.die()
         Player.speed = 0
         return
     end
 
-    --------------------------------------------------
-    -- MOVIMENTO
-    --------------------------------------------------
+    -- Movimento
+    Movement.update(Player, dt, enemy)
 
-    if love.keyboard.isDown("w") then
-        dy = dy - 1
-    end
+    -- Atualiza vida
+    Player.health = Player.healthSystem.health
+    Player.maxHealth = Player.healthSystem.maxHealth
 
-    if love.keyboard.isDown("s") then
-        dy = dy + 1
-    end
+    -- Atualiza stamina
+    Player.stamina = Stamina.stamina
+    Player.maxStamina = Stamina.maxStamina
 
-    if love.keyboard.isDown("a") then
-        dx = dx - 1
-    end
-
-    if love.keyboard.isDown("d") then
-        dx = dx + 1
-    end
+end
 
 
-    --------------------------------------------------
-    -- DIREÇÃO
-    --------------------------------------------------
+function Player.takeDamage(amount)
 
-    if dx == 0 and dy < 0 then
-        Player.direction = "up"
+    Player.healthSystem.takeDamage(amount)
 
-    elseif dx == 0 and dy > 0 then
-        Player.direction = "down"
+    Player.health = Player.healthSystem.health
 
-    elseif dx < 0 and dy == 0 then
-        Player.direction = "left"
-
-    elseif dx > 0 and dy == 0 then
-        Player.direction = "right"
-
-    elseif dx < 0 and dy < 0 then
-        Player.direction = "up-left"
-
-    elseif dx > 0 and dy < 0 then
-        Player.direction = "up-right"
-
-    elseif dx < 0 and dy > 0 then
-        Player.direction = "down-left"
-
-    elseif dx > 0 and dy > 0 then
-        Player.direction = "down-right"
-    end
+end
 
 
-    --------------------------------------------------
-    -- ESTADOS
-    --------------------------------------------------
+function Player.heal(amount)
 
-    Player.isRunning = false
-    Player.isCrouching = false
+    Player.healthSystem.heal(amount)
 
+    Player.health = Player.healthSystem.health
 
-    -- Agachar
-    if love.keyboard.isDown("lctrl", "rctrl") then
-
-        Player.isCrouching = true
-        Player.speed = Player.crouchSpeed
+end
 
 
-    -- Correr
-    elseif love.keyboard.isDown("lshift", "rshift")
-        and Player.stamina > 0
-        and (dx ~= 0 or dy ~= 0) then
+function Player.respawn()
 
-        Player.isRunning = true
-        Player.speed = Player.runSpeed
+    Death.respawn(Player, Health, Stamina)
 
+    Player.health = Player.healthSystem.health
+    Player.maxHealth = Player.healthSystem.maxHealth
 
-    -- Andar normalmente
-    else
-
-        Player.speed = Player.walkSpeed
-
-    end
-
-
-    --------------------------------------------------
-    -- STAMINA
-    --------------------------------------------------
-
-    if Player.isRunning then
-
-        Player.stamina =
-            Player.stamina - Player.staminaDrain * dt
-
-    else
-
-        Player.stamina =
-            Player.stamina + Player.staminaRecovery * dt
-
-    end
-
-
-    -- Limita a stamina entre 0 e 100
-    Player.stamina = math.max(0, Player.stamina)
-    Player.stamina = math.min(Player.maxStamina, Player.stamina)
-
-    --------------------------------------------------
-    -- MOVIMENTAR
-    --------------------------------------------------
-
-    Player.move(dx, dy, dt)
+    Player.stamina = Stamina.stamina
+    Player.maxStamina = Stamina.maxStamina
 
 end
 
 
 function Player.draw()
 
-    --------------------------------------------------
-    -- TAMANHO DO PERSONAGEM
-    --------------------------------------------------
-
     local drawWidth = Player.size
     local drawHeight = Player.size
 
-
     -- Agachado fica mais baixo
     if Player.isCrouching then
-
         drawHeight = Player.size * 0.6
-
     end
 
-
-    --------------------------------------------------
-    -- DESENHAR JOGADOR
-    --------------------------------------------------
-
+    -- Jogador
     love.graphics.setColor(1, 1, 1)
 
     love.graphics.rectangle(
@@ -235,24 +120,15 @@ function Player.draw()
         drawHeight
     )
 
-
-    --------------------------------------------------
-    -- CENTRO DO JOGADOR
-    --------------------------------------------------
-
-    local centerX =
-        Player.x + drawWidth / 2
+    -- Centro
+    local centerX = Player.x + drawWidth / 2
 
     local centerY =
         Player.y +
         (Player.size - drawHeight) +
         drawHeight / 2
 
-
-    --------------------------------------------------
-    -- INDICADOR DA DIREÇÃO
-    --------------------------------------------------
-
+    -- Indicador da direção
     if Player.direction == "up" then
 
         love.graphics.rectangle(
@@ -262,7 +138,6 @@ function Player.draw()
             8,
             8
         )
-
 
     elseif Player.direction == "down" then
 
@@ -274,7 +149,6 @@ function Player.draw()
             8
         )
 
-
     elseif Player.direction == "left" then
 
         love.graphics.rectangle(
@@ -284,7 +158,6 @@ function Player.draw()
             8,
             8
         )
-
 
     elseif Player.direction == "right" then
 
@@ -296,7 +169,6 @@ function Player.draw()
             8
         )
 
-
     elseif Player.direction == "up-left" then
 
         love.graphics.rectangle(
@@ -306,7 +178,6 @@ function Player.draw()
             8,
             8
         )
-
 
     elseif Player.direction == "up-right" then
 
@@ -318,7 +189,6 @@ function Player.draw()
             8
         )
 
-
     elseif Player.direction == "down-left" then
 
         love.graphics.rectangle(
@@ -328,7 +198,6 @@ function Player.draw()
             8,
             8
         )
-
 
     elseif Player.direction == "down-right" then
 

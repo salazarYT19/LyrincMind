@@ -3,6 +3,15 @@ local World = {}
 function World.load()
     World.width = 2000
     World.height = 1200
+
+    World.obstacles = {
+        {
+            x = 700,
+            y = 400,
+            width = 200,
+            height = 50
+        }
+    }
 end
 
 function World.draw()
@@ -26,6 +35,18 @@ function World.draw()
 
     for y = 0, World.height, 50 do
         love.graphics.line(0, y, World.width, y)
+    end
+
+    love.graphics.setColor(0.4, 0.4, 0.4)
+
+    for _, obstacle in ipairs(World.obstacles) do
+        love.graphics.rectangle(
+            "fill",
+            obstacle.x,
+            obstacle.y,
+            obstacle.width,
+            obstacle.height
+        )
     end
 
     love.graphics.setColor(1, 1, 1)

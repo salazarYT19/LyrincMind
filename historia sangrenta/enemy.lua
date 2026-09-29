@@ -1,4 +1,6 @@
-local Player = require("player")
+local Collision = require("systems.enemy.collision")
+local AI = require("systems.enemy.ai")
+
 local Enemy = {}
 
 
@@ -7,37 +9,32 @@ Enemy.y = 400
 Enemy.size = 40
 
 Enemy.maxHealth = 100
+Enemy.isDead = false
 Enemy.health = 100
 
 function Enemy.load()
 
 end
 
-function Enemy.update(dt)
-    -- código da colisão aqui
+function Enemy.update(dt, player)
 
-
-end
-
-function Enemy.update(dt)
-
-    if Player.x < Enemy.x + Enemy.size
-    and Player.x + Player.size > Enemy.x
-    and Player.y < Enemy.y + Enemy.size
-    and Player.y + Player.size > Enemy.y then
-
-        Enemy.touchingPlayer = true
-
-    else
-
-        Enemy.touchingPlayer = false
-
+    if Enemy.isDead then
+        return
     end
 
+
+    AI.update(Enemy,player, dt)
+    if not Enemy.isDead then
+        Enemy.touchingPlayer= Collision.check(player, Enemy)
+    end
 end
 
 function Enemy.draw()
     
+    if Enemy.isDead then
+        return
+    end
+
     --corpo do inimigo
     love.graphics.setColor(0.8, 0.1, 0.1) -- vermelho
 
@@ -49,14 +46,16 @@ function Enemy.draw()
     love.graphics.rectangle("fill", Enemy.x, Enemy.y - 10, Enemy.size, 5) -- fundo da barra de vida
 
     local healthWidth = Enemy.size * (Enemy.health / Enemy.maxHealth)
-    
+
     love.graphics.setColor(1, 1, 1) -- cor da barra de vida (branco)
+
+    love.graphics.rectangle("fill", Enemy.x, Enemy.y - 10, healthWidth, 5)
 
     if Enemy.touchingPlayer then
         love.graphics.setColor(1, 1, 0)
 
         love.graphics.print("COLIDIU", Enemy.x, Enemy.y - 30 )
-        
+
 
         love.graphics.setColor(1, 1, 1)
     end
